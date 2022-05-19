@@ -1010,8 +1010,11 @@ class Ui_UI(object):
     def _lan2_diao4_already(self):
         self.style_type = 3
         self.previous_bgr[:] = self.temp_bgr[:]
-
-        cv2.applyColorMap(self.previous_bgr[:], 5, self.temp_bgr[:])
+        transform_matrix =np.asarray([[0.931, 0.634, 0.672],
+                           [0.168, 0.186, 0.349],
+                           [0.189, 0.369, 0.793]]).T
+        transform_matrix *= 0.6
+        self.temp_bgr[:] = np.dot(self.previous_bgr[:], transform_matrix).clip(0, 255)
         self._set_img()
     
     def _huai2_jiu4(self):
