@@ -834,6 +834,7 @@ class Ui_UI(object):
         self.horizontalSlider.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_2.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_10.valueChanged[int].connect(self.__getattribute__('_change'))
+    
     def _cancel(self):
         '''
         还原到上一步
