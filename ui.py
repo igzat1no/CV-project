@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import cv2
 import dlib
 import imutils
+from utils import face_thin_auto, SharpenImage
 predictor_path = "./data/shape_predictor_68_face_landmarks.dat"
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(predictor_path)
@@ -829,13 +830,34 @@ class Ui_UI(object):
         self.modify_button.clicked.connect(self.show_modify_area)
         self.style_button.clicked.connect(self.show_style_area)
         self.collect_sl()
+        self.collect_button()
+        self.side_button = [self.face_button, self.modify_button, self.imitate_button,
+                        self.emotion_button, self.hair_button, self.background_button,
+                        self.style_button]
+        self._set_statu(self.side_button, False)
 
     def collect_sl(self):
         self.horizontalSlider.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_2.valueChanged[int].connect(self.__getattribute__('_change'))
+        self.horizontalSlider_5.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_10.valueChanged[int].connect(self.__getattribute__('_change'))
-        self.horizontalSlider_21.valueChanged[int].connect(self.__getattribute__('_change'))    # 亮度
+
+    def collect_button(self):
+        self.pushButton_9.clicked.connect(self.__getattribute__('_original_style'))
+        self.pushButton_8.clicked.connect(self.__getattribute__('_qing1_se4'))
+        self.pushButton_12.clicked.connect(self.__getattribute__('_lan2_diao4'))
+        self.pushButton_16.clicked.connect(self.__getattribute__('_huai2_jiu4'))
+        self.pushButton_10.clicked.connect(self.__getattribute__('_chen2_guang1'))
     
+    def _original_style(self):
+        self._change()
+    
+    def _set_statu(self, group, value):
+        '''
+        批量设置状态
+        '''
+        [item.setEnabled(value) for item in group]
+
     def _cancel(self):
         '''
         还原到上一步
@@ -845,11 +867,14 @@ class Ui_UI(object):
 
     def _change(self):
         self._cancel()
-        self._smooth()  # 磨皮
-        self._whitening()   # 美白
-        self._brightening() # 红唇
-        self._bright()  # 亮度
-
+        if self.faces == None:
+            pass
+        else:
+            self._smooth()
+            self._whitening()
+            #self._Thin()
+            self._brightening()
+                
     def openfile(self):
         root_dir = os.getcwd()
         dir = QFileDialog()
@@ -858,16 +883,23 @@ class Ui_UI(object):
             nw = dir.selectedFiles()[0]
             self.path_img = nw
             self.im_bgr, self.temp_bgr, self.faces = self.mu.read_and_mark(
-                self.path_img)
+                    self.path_img)
             self.im_ori, self.previous_bgr = self.im_bgr.copy(), self.im_bgr.copy()
             self._set_img()
             self._reset_value()
+            if self.faces == None:
+                self._set_statu(self.side_button, False)
+                self.modify_button.setEnabled(True)
+                self.style_button.setEnabled(True)
+            else:
+                self._set_statu(self.side_button, True)
         else:
-            QMessageBox.warning(self.centralWidget, '无效路径', '无效路径，请重新选择！')
+            QMessageBox.warning(self.widget_2, '无效路径', '无效路径，请重新选择！')
     
     def _reset_value(self):
         self.horizontalSlider.setSliderPosition(0)
         self.horizontalSlider_2.setSliderPosition(50)
+        self.horizontalSlider_5.setSliderPosition(50)
         self.horizontalSlider_10.setSliderPosition(50)
 
     def _cv2qimg(self, cvImg):
@@ -918,6 +950,14 @@ class Ui_UI(object):
             face.organs['mouth'].whitening(value, confirm=False)
             face.whitening(value, confirm=False)
         self._mapfaces(fun, value)
+
+    def _Thin(self):
+        t = (self.horizontalSlider_5.value() - 50)/200
+        value = min(1, t) * 2
+        self.previous_bgr[:] = self.temp_bgr[:]
+        self.temp_bgr = face_thin_auto(self.temp_bgr, detector, predictor)
+        self.im_bgr = self.temp_bgr
+        self._set_img()
         
     def _brightening(self):
         t = (self.horizontalSlider_10.value() - 50)/200
@@ -926,15 +966,34 @@ class Ui_UI(object):
         def fun(face, value):
             face.organs['mouth'].brightening(value, confirm=False)
         self._mapfaces(fun, value)
-        
-    def _bright(self):
-        # 亮度改变
-        t = self.horizontalSlider_21.value() - 50
+
+    def _qing1_se4(self):
+        self._change()
         self.previous_bgr[:] = self.temp_bgr[:]
-        brightness = t / 100
-        factor = 1.0 + brightness
-        table = np.array([(i / 255.0) * factor * 255 for i in np.arange(0, 256)]).clip(0,255).astype(np.uint8)
-        self.temp_bgr = cv2.LUT(self.temp_bgr, table)
+
+        cv2.applyColorMap(self.previous_bgr[:], 3, self.temp_bgr[:])
+        self._set_img()
+
+    def _lan2_diao4(self):
+        self._change()
+        self.previous_bgr[:] = self.temp_bgr[:]
+
+        cv2.applyColorMap(self.previous_bgr[:], 5, self.temp_bgr[:])
+        self._set_img()
+    
+    def _huai2_jiu4(self):
+        self._change()
+        self.previous_bgr[:] = self.temp_bgr[:]
+        transform_matrix =np.asarray([[0.131, 0.534, 0.272],
+                           [0.168, 0.686, 0.349],
+                           [0.189, 0.769, 0.393]]).T
+        self.temp_bgr[:] = np.dot(self.previous_bgr[:], transform_matrix).clip(0, 255)
+        self._set_img()
+    
+    def _chen2_guang1(self):
+        self._change()
+        self.previous_bgr[:] = self.temp_bgr[:]
+        self.temp_bgr[:] = cv2.convertScaleAbs(self.temp_bgr[:], beta=60)
         self._set_img()
     
     def show_face_area(self):
@@ -1321,4 +1380,8 @@ class Makeup():
         im_bgr = self.read_im(fname)
         im_hsv = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2HSV)
         temp_bgr, temp_hsv = im_bgr.copy(), im_hsv.copy()
-        return im_bgr, temp_bgr, self.get_faces(im_bgr, im_hsv, temp_bgr, temp_hsv, fname)
+        try:
+            faces = self.get_faces(im_bgr, im_hsv, temp_bgr, temp_hsv, fname)
+        except:
+            faces = None
+        return im_bgr, temp_bgr, faces
