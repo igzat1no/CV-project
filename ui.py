@@ -834,6 +834,7 @@ class Ui_UI(object):
         self.horizontalSlider.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_2.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_10.valueChanged[int].connect(self.__getattribute__('_change'))
+        self.horizontalSlider_21.valueChanged[int].connect(self.__getattribute__('_change'))    # 亮度
     
     def _cancel(self):
         '''
@@ -844,10 +845,11 @@ class Ui_UI(object):
 
     def _change(self):
         self._cancel()
-        self._smooth()
-        self._whitening()
-        self._brightening()
-                
+        self._smooth()  # 磨皮
+        self._whitening()   # 美白
+        self._brightening() # 红唇
+        self._bright()  # 亮度
+
     def openfile(self):
         root_dir = os.getcwd()
         dir = QFileDialog()
@@ -924,6 +926,16 @@ class Ui_UI(object):
         def fun(face, value):
             face.organs['mouth'].brightening(value, confirm=False)
         self._mapfaces(fun, value)
+        
+    def _bright(self):
+        # 亮度改变
+        t = self.horizontalSlider_21.value() - 50
+        self.previous_bgr[:] = self.temp_bgr[:]
+        brightness = t / 100
+        factor = 1.0 + brightness
+        table = np.array([(i / 255.0) * factor * 255 for i in np.arange(0, 256)]).clip(0,255).astype(np.uint8)
+        self.temp_bgr = cv2.LUT(self.temp_bgr, table)
+        self._set_img()
     
     def show_face_area(self):
         self.face_area_widget.setVisible(True)
