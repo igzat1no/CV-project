@@ -841,6 +841,7 @@ class Ui_UI(object):
         self.horizontalSlider_2.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_5.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_10.valueChanged[int].connect(self.__getattribute__('_change'))
+        self.horizontalSlider_21.valueChanged[int].connect(self.__getattribute__('_change'))
 
     def collect_button(self):
         self.pushButton_9.clicked.connect(self.__getattribute__('_original_style'))
@@ -850,6 +851,7 @@ class Ui_UI(object):
         self.pushButton_10.clicked.connect(self.__getattribute__('_chen2_guang1'))
     
     def _original_style(self):
+        self.style_type = 0
         self._change()
     
     def _set_statu(self, group, value):
@@ -868,12 +870,23 @@ class Ui_UI(object):
     def _change(self):
         self._cancel()
         if self.faces == None:
-            pass
+            self._bright()
         else:
             self._smooth()
             self._whitening()
             #self._Thin()
             self._brightening()
+            self._bright()
+        if not self.style_area_widget.isVisible():
+            if self.style_type == 1:
+                self._qing1_se4_already()
+            elif self.style_type == 3:
+                self._lan2_diao4_already()
+            elif self.style_type == 7:
+                self._huai2_jiu4_already()
+            elif self.style_type == 8:
+                self._chen2_guang1_already()
+            
                 
     def openfile(self):
         root_dir = os.getcwd()
@@ -901,6 +914,8 @@ class Ui_UI(object):
         self.horizontalSlider_2.setSliderPosition(50)
         self.horizontalSlider_5.setSliderPosition(50)
         self.horizontalSlider_10.setSliderPosition(50)
+        self.horizontalSlider_21.setSliderPosition(50)
+        self.style_type = 0
 
     def _cv2qimg(self, cvImg):
         '''
@@ -951,6 +966,16 @@ class Ui_UI(object):
             face.whitening(value, confirm=False)
         self._mapfaces(fun, value)
 
+    def _bright(self):
+        # 亮度改变
+        self.previous_bgr[:] = self.temp_bgr[:]
+        t = self.horizontalSlider_21.value() - 50
+        brightness = t / 100
+        factor = 1.0 + brightness
+        table = np.array([(i / 255.0) * factor * 255 for i in np.arange(0, 256)]).clip(0,255).astype(np.uint8)
+        self.temp_bgr[:] = cv2.LUT(self.temp_bgr[:], table)
+        self._set_img()
+
     def _Thin(self):
         t = (self.horizontalSlider_5.value() - 50)/200
         value = min(1, t) * 2
@@ -969,6 +994,10 @@ class Ui_UI(object):
 
     def _qing1_se4(self):
         self._change()
+        self._qing1_se4_already()
+
+    def _qing1_se4_already(self):
+        self.style_type = 1
         self.previous_bgr[:] = self.temp_bgr[:]
 
         cv2.applyColorMap(self.previous_bgr[:], 3, self.temp_bgr[:])
@@ -976,6 +1005,10 @@ class Ui_UI(object):
 
     def _lan2_diao4(self):
         self._change()
+        self._lan2_diao4_already()
+
+    def _lan2_diao4_already(self):
+        self.style_type = 3
         self.previous_bgr[:] = self.temp_bgr[:]
 
         cv2.applyColorMap(self.previous_bgr[:], 5, self.temp_bgr[:])
@@ -983,6 +1016,10 @@ class Ui_UI(object):
     
     def _huai2_jiu4(self):
         self._change()
+        self._huai2_jiu4_already()
+
+    def _huai2_jiu4_already(self):
+        self.style_type = 7
         self.previous_bgr[:] = self.temp_bgr[:]
         transform_matrix =np.asarray([[0.131, 0.534, 0.272],
                            [0.168, 0.686, 0.349],
@@ -992,6 +1029,10 @@ class Ui_UI(object):
     
     def _chen2_guang1(self):
         self._change()
+        self._chen2_guang1_already()
+
+    def _chen2_guang1_already(self):
+        self.style_type = 8
         self.previous_bgr[:] = self.temp_bgr[:]
         self.temp_bgr[:] = cv2.convertScaleAbs(self.temp_bgr[:], beta=60)
         self._set_img()
