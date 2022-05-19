@@ -23,6 +23,12 @@ predictor_path = "./data/shape_predictor_68_face_landmarks.dat"
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(predictor_path)
 
+def show_img(img):
+    cv2.namedWindow("image")
+    cv2.imshow("image", img)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+
 class Ui_UI(object):
     def __init__(self):
         if os.path.exists("./data/shape_predictor_68_face_landmarks.dat"):
@@ -884,6 +890,7 @@ class Ui_UI(object):
         '''
         显示pixmap
         '''
+        show_img(self.temp_bgr)
         self.label_11.setPixmap(QPixmap.fromImage(self._cv2qimg(self.temp_bgr)))
     def _mapfaces(self, fun, value):
         '''
@@ -933,7 +940,7 @@ class Ui_UI(object):
         self.previous_bgr[:] = self.temp_bgr[:]
         brightness = t / 100
         factor = 1.0 + brightness
-        table = np.array([(i / 255.0) * factor * 255 for i in np.arange(0, 256)]).clip(0,255).astype(np.uint8)
+        table = np.array([(i / 255.0) * factor * 255 for i in np.arange(0, 256)]).clip(0,255).astype('uint8')
         self.temp_bgr = cv2.LUT(self.temp_bgr, table)
         self._set_img()
     
