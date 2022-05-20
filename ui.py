@@ -851,6 +851,7 @@ class Ui_UI(object):
         self.horizontalSlider_10.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_21.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_22.valueChanged[int].connect(self.__getattribute__('_change'))
+        self.horizontalSlider_23.valueChanged[int].connect(self.__getattribute__('_change'))
 
     def collect_button(self):
         self.pushButton_9.clicked.connect(self.__getattribute__('_original_style'))
@@ -887,6 +888,7 @@ class Ui_UI(object):
         
         self._bright()
         self._contrast()
+        self._saturation()
         
         if not self.style_area_widget.isVisible():
             if self.style_type == 1:
@@ -941,6 +943,8 @@ class Ui_UI(object):
         self.horizontalSlider_5.setSliderPosition(50)
         self.horizontalSlider_10.setSliderPosition(50)
         self.horizontalSlider_21.setSliderPosition(50)
+        self.horizontalSlider_22.setSliderPosition(50)
+        self.horizontalSlider_23.setSliderPosition(50)
         self.style_type = 0
 
     def _cv2qimg(self, cvImg):
@@ -1009,6 +1013,44 @@ class Ui_UI(object):
         factor = 1.0 + brightness
         table = np.array([(((i - 122) / 255.0) * factor * 255 + 130) for i in np.arange(0, 256)]).clip(0,255).astype(np.uint8)
         self.temp_bgr[:] = cv2.LUT(self.temp_bgr[:], table)
+        self._set_img()
+    
+    def _saturation(self):
+        # 饱和度改变
+        self.previous_bgr[:] = self.temp_bgr[:]
+        t = self.horizontalSlider_23.value() - 50
+        adjust = t / 50.0
+        if t > 0:
+            t = t * 1.2
+        w, h, c = self.temp_bgr.shape
+        
+        lum = np.zeros((w, h))
+        lummask = np.zeros((w, h))
+        maskB = np.zeros((w, h))
+        maskG = np.zeros((w, h))
+        maskR = np.zeros((w, h))
+        lum[:, :] = 0.299 * self.temp_bgr[:, :, 0] + 0.587 * self.temp_bgr[:, :, 1] + 0.114 * self.temp_bgr[:, :, 2]
+        maskB[:, :] = (self.temp_bgr[:, :, 0] - lum[:, :]).clip(0, 255) / 255.0
+        maskG[:, :] = (self.temp_bgr[:, :, 1] - lum[:, :]).clip(0, 255) / 255.0
+        maskR[:, :] = (self.temp_bgr[:, :, 2] - lum[:, :]).clip(0, 255) / 255.0
+        lummask[:, :] = (1.0 - (maskB[:, :] * 0.299 + maskG[:, :] * 0.587 + maskR[:, :] * 0.114)) * adjust
+        self.temp_bgr[:, :, 0] = ((self.temp_bgr[:, :, 0] * (1.0 + lummask[:, :])) - lum[:, :] * lummask[:, :]).clip(0, 255).astype(np.uint8)
+        self.temp_bgr[:, :, 1] = ((self.temp_bgr[:, :, 1] * (1.0 + lummask[:, :])) - lum[:, :] * lummask[:, :]).clip(0, 255).astype(np.uint8)
+        self.temp_bgr[:, :, 2] = ((self.temp_bgr[:, :, 2] * (1.0 + lummask[:, :])) - lum[:, :] * lummask[:, :]).clip(0, 255).astype(np.uint8)
+        
+        '''
+        for i in range(w):
+            for j in range(h):
+                lum = 0.299 * self.temp_bgr[i, j, 0] + 0.587 * self.temp_bgr[i, j, 1] + 0.114 * self.temp_bgr[i, j, 2]
+                maskB = max(0.0, min(self.temp_bgr[i, j, 0] - lum, 255.0)) / 255.0
+                maskG = max(0.0, min(self.temp_bgr[i, j, 1] - lum, 255.0)) / 255.0
+                maskR = max(0.0, min(self.temp_bgr[i, j, 2] - lum, 255.0)) / 255.0
+                lummask = (1.0 - (maskB * 0.299 + maskG * 0.587 + maskR * 0.114)) * adjust
+                self.temp_bgr[i, j, 0] = ((self.temp_bgr[i, j, 0] * (1.0 + lummask)) - lum * lummask).clip(0, 255).astype(np.uint8)
+                self.temp_bgr[i, j, 1] = ((self.temp_bgr[i, j, 1] * (1.0 + lummask)) - lum * lummask).clip(0, 255).astype(np.uint8)
+                self.temp_bgr[i, j, 2] = ((self.temp_bgr[i, j, 2] * (1.0 + lummask)) - lum * lummask).clip(0, 255).astype(np.uint8)
+        '''
+        
         self._set_img()
 
     def _Thin(self):
