@@ -850,6 +850,7 @@ class Ui_UI(object):
         self.horizontalSlider_5.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_10.valueChanged[int].connect(self.__getattribute__('_change'))
         self.horizontalSlider_21.valueChanged[int].connect(self.__getattribute__('_change'))
+        self.horizontalSlider_22.valueChanged[int].connect(self.__getattribute__('_change'))
 
     def collect_button(self):
         self.pushButton_9.clicked.connect(self.__getattribute__('_original_style'))
@@ -877,14 +878,16 @@ class Ui_UI(object):
 
     def _change(self):
         self._cancel()
-        if self.faces == None:
-            self._bright()
-        else:
+        
+        if self.faces is not None:
             self._smooth()
             self._whitening()
             #self._Thin()
             self._brightening()
-            self._bright()
+        
+        self._bright()
+        self._contrast()
+        
         if not self.style_area_widget.isVisible():
             if self.style_type == 1:
                 self._qing1_se4_already()
@@ -894,7 +897,7 @@ class Ui_UI(object):
                 self._huai2_jiu4_already()
             elif self.style_type == 8:
                 self._chen2_guang1_already()
-            
+
     def openfile_temp(self):
         root_dir = os.getcwd()
         dir = "resource\\raw_face.jpg"
@@ -994,9 +997,17 @@ class Ui_UI(object):
         # 亮度改变
         self.previous_bgr[:] = self.temp_bgr[:]
         t = self.horizontalSlider_21.value() - 50
-        brightness = t / 100
+        table = np.array([(i + t) for i in np.arange(0, 256)]).clip(0,255).astype(np.uint8)
+        self.temp_bgr[:] = cv2.LUT(self.temp_bgr[:], table)
+        self._set_img()
+        
+    def _contrast(self):
+        # 对比度改变
+        self.previous_bgr[:] = self.temp_bgr[:]
+        t = self.horizontalSlider_22.value() - 50
+        brightness = t / 50
         factor = 1.0 + brightness
-        table = np.array([(i / 255.0) * factor * 255 for i in np.arange(0, 256)]).clip(0,255).astype(np.uint8)
+        table = np.array([(((i - 122) / 255.0) * factor * 255 + 130) for i in np.arange(0, 256)]).clip(0,255).astype(np.uint8)
         self.temp_bgr[:] = cv2.LUT(self.temp_bgr[:], table)
         self._set_img()
 
